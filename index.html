@@ -1,241 +1,59 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Busca de Estabelecimentos</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
+<script>
+    const searchForm = document.getElementById('searchForm');
+    const cityInput = document.getElementById('cityInput');
+    const searchButton = document.getElementById('searchButton');
+    const errorDiv = document.getElementById('error');
+    const resultsDiv = document.getElementById('results');
+    const emptyMessage = document.getElementById('emptyMessage');
 
-        body {
-            background: linear-gradient(to bottom right, #f0f4ff, #e8eeff);
-            min-height: 100vh;
-            padding: 2rem;
-        }
+    const API_URL = "https://api-python-yr6q.onrender.com/api/establishments"; // 🔹 Alterado para Render
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+    searchForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cidade = cityInput.value.trim();
+        if (!cidade) return;
 
-        .header {
-            text-align: center;
-            margin-bottom: 3rem;
-        }
+        searchButton.disabled = true;
+        errorDiv.style.display = 'none';
+        resultsDiv.innerHTML = '';
+        emptyMessage.style.display = 'none';
 
-        .header h1 {
-            color: #1f2937;
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .header p {
-            color: #4b5563;
-            font-size: 1.125rem;
-        }
-
-        .search-form {
-            max-width: 600px;
-            margin: 0 auto 3rem;
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 1rem 1.5rem;
-            font-size: 1.125rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 9999px;
-            outline: none;
-            transition: all 0.2s;
-        }
-
-        .search-input:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-        }
-
-        .search-button {
-            position: absolute;
-            right: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: #4f46e5;
-            color: white;
-            border: none;
-            padding: 0.5rem 1.5rem;
-            border-radius: 9999px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .search-button:hover {
-            background: #4338ca;
-        }
-
-        .search-button:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .error-message {
-            color: #dc2626;
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            padding: 1rem;
-        }
-
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            transition: box-shadow 0.2s;
-        }
-
-        .card:hover {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .card-content {
-            color: #4b5563;
-        }
-
-        .card-content div {
-            margin-bottom: 0.75rem;
-        }
-
-        .card-content a {
-            color: #4f46e5;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .card-content a:hover {
-            color: #4338ca;
-        }
-
-        .empty-message {
-            text-align: center;
-            color: #6b7280;
-            margin-top: 2rem;
-        }
-
-        @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
+        try {
+            const response = await fetch(`${API_URL}?city=${encodeURIComponent(cidade)}`);
+            if (!response.ok) throw new Error('Falha ao buscar estabelecimentos');
+            
+            const estabelecimentos = await response.json();
+            
+            if (estabelecimentos.length === 0) {
+                emptyMessage.textContent = 'Nenhum estabelecimento encontrado nesta cidade';
+                emptyMessage.style.display = 'block';
+                return;
             }
 
-            .grid {
-                grid-template-columns: 1fr;
-            }
+            estabelecimentos.forEach(estabelecimento => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <h2 class="card-title">${estabelecimento.nome}</h2>
+                    </div>
+                    <div class="card-content">
+                        <div>${estabelecimento.endereço}</div>
+                        <div>${estabelecimento.telefone}</div>
+                        ${estabelecimento.instagram !== "Não encontrado" 
+                            ? `<div><a href="${estabelecimento.instagram}" target="_blank" rel="noopener noreferrer">Perfil no Instagram</a></div>`
+                            : ''
+                        }
+                    </div>
+                `;
+                resultsDiv.appendChild(card);
+            });
+        } catch (err) {
+            errorDiv.textContent = 'Não foi possível carregar os estabelecimentos. Tente novamente.';
+            errorDiv.style.display = 'block';
+            console.error(err);
+        } finally {
+            searchButton.disabled = false;
         }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="header">
-            <h1>Encontre Estabelecimentos</h1>
-            <p>Descubra restaurantes, pizzarias, churrascarias e mais na sua cidade</p>
-        </header>
-
-        <form id="searchForm" class="search-form">
-            <input
-                type="text"
-                id="cityInput"
-                class="search-input"
-                placeholder="Digite o nome da cidade..."
-                required
-            >
-            <button type="submit" class="search-button" id="searchButton">Buscar</button>
-        </form>
-
-        <div id="error" class="error-message" style="display: none;"></div>
-        <div id="results" class="grid"></div>
-        <div id="emptyMessage" class="empty-message">
-            Digite o nome de uma cidade para buscar estabelecimentos
-        </div>
-    </div>
-
-    <script>
-        const searchForm = document.getElementById('searchForm');
-        const cityInput = document.getElementById('cityInput');
-        const searchButton = document.getElementById('searchButton');
-        const errorDiv = document.getElementById('error');
-        const resultsDiv = document.getElementById('results');
-        const emptyMessage = document.getElementById('emptyMessage');
-
-        searchForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const cidade = cityInput.value.trim();
-            if (!cidade) return;
-
-            searchButton.disabled = true;
-            errorDiv.style.display = 'none';
-            resultsDiv.innerHTML = '';
-            emptyMessage.style.display = 'none';
-
-            try {
-                const response = await fetch(`http://localhost:5000/api/establishments?city=${encodeURIComponent(cidade)}`);
-                if (!response.ok) throw new Error('Falha ao buscar estabelecimentos');
-                
-                const estabelecimentos = await response.json();
-                
-                if (estabelecimentos.length === 0) {
-                    emptyMessage.textContent = 'Nenhum estabelecimento encontrado nesta cidade';
-                    emptyMessage.style.display = 'block';
-                    return;
-                }
-
-                estabelecimentos.forEach(estabelecimento => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <h2 class="card-title">${estabelecimento.nome}</h2>
-                        </div>
-                        <div class="card-content">
-                            <div>${estabelecimento.endereço}</div>
-                            <div>${estabelecimento.telefone}</div>
-                            ${estabelecimento.instagram !== "Não encontrado" 
-                                ? `<div><a href="${estabelecimento.instagram}" target="_blank" rel="noopener noreferrer">Perfil no Instagram</a></div>`
-                                : ''
-                            }
-                        </div>
-                    `;
-                    resultsDiv.appendChild(card);
-                });
-            } catch (err) {
-                errorDiv.textContent = 'Não foi possível carregar os estabelecimentos. Tente novamente.';
-                errorDiv.style.display = 'block';
-                console.error(err);
-            } finally {
-                searchButton.disabled = false;
-            }
-        });
-    </script>
-</body>
-</html>
+    });
+</script>
